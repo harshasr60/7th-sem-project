@@ -23,7 +23,8 @@ import useFetch from "@/hooks/use-fetch";
 import { useUser } from "@clerk/nextjs";
 import { entriesToMarkdown } from "@/app/lib/helper";
 import { resumeSchema } from "@/app/lib/schema";
-import html2pdf from "html2pdf.js/dist/html2pdf.min.js";
+// ❌ Do NOT import html2pdf here
+// import html2pdf from "html2pdf.js/dist/html2pdf.min.js";
 
 export default function ResumeBuilder({ initialContent }) {
   const [activeTab, setActiveTab] = useState("edit");
@@ -112,21 +113,31 @@ export default function ResumeBuilder({ initialContent }) {
 
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // ✅ jsPDF-based PDF generation (no html2canvas, no oklch issues)
   const generatePDF = async () => {
     setIsGenerating(true);
     try {
-      const element = document.getElementById("resume-pdf");
-      const opt = {
-        margin: [15, 15],
-        filename: "resume.pdf",
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      };
+      const { jsPDF } = await import("jspdf");
 
-      await html2pdf().set(opt).from(element).save();
+      const doc = new jsPDF({
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait",
+      });
+
+      const marginLeft = 15;
+      const marginTop = 15;
+      const maxWidth = 180;
+
+      const content = previewContent || "";
+
+      const lines = doc.splitTextToSize(content, maxWidth);
+      doc.text(lines, marginLeft, marginTop);
+
+      doc.save("resume.pdf");
     } catch (error) {
       console.error("PDF generation error:", error);
+      toast.error("Failed to generate PDF");
     } finally {
       setIsGenerating(false);
     }
@@ -135,8 +146,8 @@ export default function ResumeBuilder({ initialContent }) {
   const onSubmit = async (data) => {
     try {
       const formattedContent = previewContent
-        .replace(/\n/g, "\n") // Normalize newlines
-        .replace(/\n\s*\n/g, "\n\n") // Normalize multiple newlines to double newlines
+        .replace(/\n/g, "\n")
+        .replace(/\n\s*\n/g, "\n\n")
         .trim();
 
       console.log(previewContent, formattedContent);
@@ -292,7 +303,9 @@ export default function ResumeBuilder({ initialContent }) {
                 )}
               />
               {errors.skills && (
-                <p className="text-sm text-red-500">{errors.skills.message}</p>
+                <p className="text-sm text-red-500">
+                  {errors.skills.message}
+                </p>
               )}
             </div>
 
@@ -401,6 +414,7 @@ export default function ResumeBuilder({ initialContent }) {
               preview={resumeMode}
             />
           </div>
+          {/* This hidden block is no longer used by PDF, but you can keep or remove it */}
           <div className="hidden">
             <div id="resume-pdf">
               <MDEditor.Markdown

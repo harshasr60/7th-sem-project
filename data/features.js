@@ -9,9 +9,9 @@ export const features = [
   },
   {
     icon: <Briefcase className="w-10 h-10 mb-4 text-primary" />,
-    title: "Interview Preparation",
+    title: "Cover Letter Generator",
     description:
-      "Practice with role-specific questions and get instant feedback to improve your performance.",
+      "Craft personalized cover letters instantly using AI — tailored to your resume, job title, and company for a professional first impression.",
   },
   {
     icon: <LineChart className="w-10 h-10 mb-4 text-primary" />,
